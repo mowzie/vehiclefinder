@@ -1,0 +1,19 @@
+# depslib dependency file v1.0
+1430268314 source:f:\soundlocalization\soundlocalization\source.c
+	<complex.h>
+	"fftw3.h"
+	<stdlib.h>
+	<stdio.h>
+
+1429559934 f:\soundlocalization\soundlocalization\fftw-3.3.4-dll64\fftw3.h
+	<stdio.h>
+	<stddef.h>
+
+1394929660 f:\soundlocalization\soundlocalization\fftw-3.3.4-dll32\fftw3.h
+	<stdio.h>
+	<stddef.h>
+
+1394929660 f:\soundlocalization\soundlocalization\fftw3.h
+	<stdio.h>
+	<stddef.h>
+
