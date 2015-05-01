@@ -44,7 +44,7 @@ void printHeader(struct WaveHeader *header)
     {
       printf("%c", header->datachunk_id[i]);
     }
-    printf("Data size: %d\n", header->datachunk_size);
+    printf("\r\nData size: %d\n", header->datachunk_size);
     return;
 }
 

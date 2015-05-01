@@ -17,3 +17,37 @@
 	<stdio.h>
 	<stddef.h>
 
+1430501884 source:c:\users\christopher\documents\github\vehiclefinder\timedifference\source.c
+	<complex.h>
+	"fftw3.h"
+	<stdlib.h>
+	<stdio.h>
+
+1394929660 c:\users\christopher\documents\github\vehiclefinder\timedifference\fftw3.h
+	<stdio.h>
+	<stddef.h>
+
+1430520664 source:c:\users\christopher\documents\github\vehiclefinder\timedifference\timedifference.c
+	"timedifference.h"
+	"spectrogram.h"
+	"../common/wavheader.h"
+	<stdlib.h>
+	<stdio.h>
+	<math.h>
+	<float.h>
+	<string.h>
+
+1430504615 c:\users\christopher\documents\github\vehiclefinder\timedifference\timedifference.h
+	<complex.h>
+	"fftw3.h"
+
+1430512458 c:\users\christopher\documents\github\vehiclefinder\timedifference\spectrogram.h
+
+1430270421 c:\users\christopher\documents\github\vehiclefinder\common\wavheader.h
+	<stdio.h>
+	<math.h>
+	<stdlib.h>
+
+1430519159 source:c:\users\christopher\documents\github\vehiclefinder\common\wavheader.c
+	"wavheader.h"
+

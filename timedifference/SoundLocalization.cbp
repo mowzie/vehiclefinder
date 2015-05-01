@@ -11,6 +11,7 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Option use_console_runner="0" />
+				<Option parameters='&quot;..\testfiles\siren-chan2\Audio Track.wav&quot;' />
 				<Compiler>
 					<Add option="-Wnon-virtual-dtor" />
 					<Add option="-Wshadow" />
@@ -47,18 +48,25 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add directory="F:/SoundLocalization/SoundLocalization/" />
+			<Add directory="../timedifference" />
+			<Add directory="../common" />
 		</Compiler>
 		<Linker>
 			<Add library="libfftw3-3.a" />
 			<Add library="libfftw3f-3.a" />
 			<Add library="libfftw3l-3.a" />
-			<Add directory="F:/SoundLocalization/SoundLocalization/" />
+			<Add directory="../timedifference" />
+			<Add directory="../common" />
 		</Linker>
-		<Unit filename="Source.c">
+		<Unit filename="../common/wavheader.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="Source.h" />
+		<Unit filename="../common/wavheader.h" />
+		<Unit filename="spectrogram.h" />
+		<Unit filename="timedifference.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="timedifference.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />
