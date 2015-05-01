@@ -7,7 +7,7 @@
 
 struct WaveHeader *headerCreate()
 {
-    struct WaveHeader *wav = malloc(sizeof(struct WaveHeader));
+    struct WaveHeader *wav = (WaveHeader*)malloc(sizeof(struct WaveHeader));
     return wav;
 }
 

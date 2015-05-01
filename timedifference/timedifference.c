@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
 	}
 
-    struct WaveHeader *wav = malloc(sizeof(struct WaveHeader));
+    struct WaveHeader *wav = (WaveHeader*)malloc(sizeof(struct WaveHeader));
     readHeader(fp, wav);
     printHeader(wav);
     frames = wav->chunk_size / (wav->block_align * 512);
