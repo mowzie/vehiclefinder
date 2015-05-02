@@ -13,7 +13,7 @@ struct WaveHeader *headerCreate()
 
 void printHeader(struct WaveHeader *header)
 {
-    int i = 0;
+    unsigned int i = 0;
     for (i = 0; i < sizeof(header->chunk_id); i++)
     {
       printf("%c", header->chunk_id[i]);
