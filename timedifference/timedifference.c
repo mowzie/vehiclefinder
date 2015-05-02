@@ -61,7 +61,6 @@ int main(int argc, char *argv[]) {
                 max = spectro_channel0[i][j];
         }
     }
-
     char* filename = strcat(argv[1], "_wav.ppm");
     FILE *f = fopen(filename, "wb");
     fprintf(f, "P6\n%i %i 255\n", frames, buckets);
@@ -81,7 +80,7 @@ int main(int argc, char *argv[]) {
     printf("Created \"%s\"\r\n", filename);
 
 	fflush(stdout);
-
+    free(wav);
 	free(in);
 	free(out);
 
@@ -90,7 +89,7 @@ int main(int argc, char *argv[]) {
         free(spectro_channel0[i]);
 	}
 	free(spectro_channel0);
-
+    fftwf_cleanup();
 	system("pause");
 	return EXIT_SUCCESS;
 }
