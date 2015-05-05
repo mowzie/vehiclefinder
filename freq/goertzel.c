@@ -1,12 +1,16 @@
 #include <math.h>
 #include <stdio.h>
-#define BUFFERSIZE 128
+#define BUFFERSIZE 140
+//#define YELPHI 1300 //police.wav
+#define YELPHI 1700 //police3.wav
+//#define YELPLOW 610 //police.wav
+#define YELPLOW 700 //police3.wav
 
-float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, float* data);
-void processData(int, int, FILE * fp);
+float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, short int* data);
+void processData(int, int, short int* chan1);
 
 
-float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, float* data)
+float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, short int* data)
 {
     int     k,i;
     float   floatnumSamples;
@@ -22,7 +26,7 @@ float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, float* dat
   float imag = 0;
   //  SAMPLING_RATE *=2;
     floatnumSamples = (float) numSamples;
-    k = (int) ( ((floatnumSamples * TARGET_FREQUENCY) / SAMPLING_RATE));
+    k = (int) ( ((0.5 + floatnumSamples * TARGET_FREQUENCY) / SAMPLING_RATE));
 
   //k =   k = (int) (floatnumSamples/ 10)*TARGET_FREQUENCY / SAMPLING_RATE;
 
@@ -48,16 +52,15 @@ float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, float* dat
 
     real = (q1 - q2 * cosine) / (numSamples / 2.0);
   imag = (q2 * sine) / (numSamples / 2.0);
-   // real = 0.5 * coeff*q1 - q2;
-   // imag = sine*q2;
+
 
   result = sqrtf(real*real + imag*imag);
-//  result = real*real + imag*imag;
+
     return result;
 }
 
 
-void processData(int freq, int numOfSamples, FILE *fp) {
+void processData(int freq, int numOfSamples, short int *chan1) {
   //int test = 0;
   short int sample = 0;
   int i = 0;
@@ -71,13 +74,14 @@ void processData(int freq, int numOfSamples, FILE *fp) {
   int wailC = 0;
   int hilo = 0;
   //int hiloC = 0;
-  float foo [BUFFERSIZE];
+  short int foo [BUFFERSIZE];
 
-
-  for (i = 0; i < numOfSamples; i+=BUFFERSIZE) {
+  for (i = 0; i < numOfSamples; i+=(BUFFERSIZE-(BUFFERSIZE/2))) {
     for (j = 0; j < BUFFERSIZE; j++) {
-      fread(&sample,1,2,fp);
-      foo[j] = sample;
+
+      foo[j] = chan1[i+j];
+      //printf("%d\n", foo[j]);
+      //getchar();
     }
     /*
     printf("%d 530 %f \n", i+BUFFERSIZE, goertzel(BUFFERSIZE,530,freq, foo));
@@ -143,41 +147,20 @@ void processData(int freq, int numOfSamples, FILE *fp) {
 
 ///////////////////////////////////
 //
-//Search for wailing  (oscilations between 620hz -> 1500 hz)
+//Search for "Yelp"  (oscilations between 620hz -> 1500 hz)
 //
 ///////////////////////////////////
-//600
-      power = goertzel(BUFFERSIZE,600,freq, foo);
-      //if (power < 10)
-        //power = 0;
-      printf("%d %f", i+BUFFERSIZE, power);
-      power = goertzel(BUFFERSIZE,1300,freq, foo);
-      //if (power < 10)
-        //power = 0;
+
+      power = goertzel(BUFFERSIZE,YELPLOW,freq, foo);
+      if (power < 3500)
+        power = 0;
+      printf("%d %f", i, power);
+
+      power = goertzel(BUFFERSIZE,YELPHI,freq, foo);
+      if (power < 3500)
+        power = 0;
       printf(" %f \n", power);
-      if (wail == 0) {
-        power = goertzel(BUFFERSIZE,620,freq, foo);
-        if (power > 1e05) {
-          wail = 1;
-        }
-      }
-      else {
-        power = goertzel(BUFFERSIZE,1500,freq, foo);
-        if (power > 1e05) {
-          wailC++;
-          last = 0;
-          wail = 0;
-        }
-        else
-          last=last + BUFFERSIZE;
-      }
-      if (last > 2560) {
-        last = 0;
-      }
-      if (wailC > 15) {
-        //printf("Wailing Siren\n");
-        //return;
-      }
+
 
 //////////////////////////////////////
 //End Wail search

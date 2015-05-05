@@ -6,7 +6,10 @@
 
 int main(int argc, char *argv[])
 {
-  int numOfSamples = 0;
+  short int *chan1;
+  short int sample;
+  int i = 0;
+  unsigned int numOfSamples = 0;
   struct WaveHeader *wav = malloc(sizeof(struct WaveHeader));
   int samplerate = 0;
   FILE * fp;
@@ -21,9 +24,18 @@ int main(int argc, char *argv[])
   samplerate = wav->sample_rate;
   numOfSamples = wav->datachunk_size / (wav->nChannels * (wav->bps / 8));
 
-  free(wav);
+  //code expects mono channel, read in one channel and store into array
+  chan1 = malloc(numOfSamples  * sizeof(short int));
+  for (i = 0; i < numOfSamples; i++) {
+    fread(&sample,1,2,fp);
+    chan1[i] = sample;
+  }
 
-  processData(samplerate, numOfSamples, fp);
+  //don't need the header anymore
+  free(wav);
+  //process the data
+  processData(samplerate, numOfSamples, chan1);
+  free(chan1);
   fclose(fp);
   return 0;
 }
