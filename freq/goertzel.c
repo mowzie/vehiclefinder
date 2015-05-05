@@ -72,6 +72,10 @@ void processData(int freq, int numOfSamples, short int *chan1) {
   int last = 0;
   int wail = 0;
   int wailC = 0;
+  int yelpC = 0;
+  int yelplow = 0;
+  int yelphi = 0;
+  int lastYelp = 0;
   int hilo = 0;
   //int hiloC = 0;
   short int foo [BUFFERSIZE];
@@ -145,20 +149,39 @@ void processData(int freq, int numOfSamples, short int *chan1) {
 
 ///////////////////////////////////
 //
-//Search for "Yelp"  (oscilations between 620hz -> 1500 hz)
+//Search for "Yelp"  (oscilations between 700hz -> 1700 hz)
 //
 ///////////////////////////////////
 
+//average yelp cycle is between 700-770 (based on sample size)
+
       power = goertzel(BUFFERSIZE,YELPLOW,freq, foo);
-      if (power < 3500)
-        power = 0;
-      printf("%d %f", i, power);
+      if (power > 3500) {
+        if ((i - lastYelp) > 700)
+        {
+          //printf("%d\tlow\t%d\n", i,yelpC);
+          yelpC++;
+        }
+        lastYelp = i;
+      }
 
       power = goertzel(BUFFERSIZE,YELPHI,freq, foo);
-      if (power < 3500)
-        power = 0;
-      printf(" %f \n", power);
+      if (power > 3500) {
+        if ((i-lastYelp) > 700)
+        {
+          //printf("%d\thi\t%d\n", i,yelpC);
+          yelpC++;
+        }
+        lastYelp = i;
+      }
 
+      if ((i - lastYelp) > 800)
+        yelpC = 0;
+      if (yelpC >15)
+      {
+        printf("*********YELP*********");
+        return;
+      }
 
 //////////////////////////////////////
 //End Wail search
