@@ -1,16 +1,16 @@
 #include <math.h>
 #include <stdio.h>
 #define BUFFERSIZE 140
-#define YELPHI 1300 //police.wav
-#define YELPHI 1505 //police3.wav
-#define YELPLOW 610 //police.wav
-#define YELPLOW 540 //police3.wav
+//#define YELPHI 1300 //police.wav
+#define YELPHI 1700 //police3.wav
+//#define YELPLOW 610 //police.wav
+#define YELPLOW 700 //police3.wav
 
-float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, float* data);
-void processData(int, int, FILE * fp);
+float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, short int* data);
+void processData(int, int, short int* chan1);
 
 
-float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, float* data)
+float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, short int* data)
 {
     int     k,i;
     float   floatnumSamples;
@@ -60,7 +60,7 @@ float goertzel(int numSamples,int TARGET_FREQUENCY,int SAMPLING_RATE, float* dat
 }
 
 
-void processData(int freq, int numOfSamples, FILE *fp) {
+void processData(int freq, int numOfSamples, short int *chan1) {
   //int test = 0;
   short int sample = 0;
   int i = 0;
@@ -74,13 +74,14 @@ void processData(int freq, int numOfSamples, FILE *fp) {
   int wailC = 0;
   int hilo = 0;
   //int hiloC = 0;
-  float foo [BUFFERSIZE];
+  short int foo [BUFFERSIZE];
 
-
-  for (i = 0; i < numOfSamples; i+=(BUFFERSIZE-(BUFFERSIZE/8))) {
+  for (i = 0; i < numOfSamples; i+=(BUFFERSIZE-(BUFFERSIZE/2))) {
     for (j = 0; j < BUFFERSIZE; j++) {
-      fread(&sample,1,2,fp);
-      foo[j] = sample;
+
+      foo[j] = chan1[i+j];
+      //printf("%d\n", foo[j]);
+      //getchar();
     }
     /*
     printf("%d 530 %f \n", i+BUFFERSIZE, goertzel(BUFFERSIZE,530,freq, foo));
@@ -151,12 +152,12 @@ void processData(int freq, int numOfSamples, FILE *fp) {
 ///////////////////////////////////
 
       power = goertzel(BUFFERSIZE,YELPLOW,freq, foo);
-      if (power < 20)
+      if (power < 3500)
         power = 0;
-      printf("%d %f", i+BUFFERSIZE, power);
+      printf("%d %f", i, power);
 
       power = goertzel(BUFFERSIZE,YELPHI,freq, foo);
-      if (power < 50)
+      if (power < 3500)
         power = 0;
       printf(" %f \n", power);
 
