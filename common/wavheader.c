@@ -78,9 +78,14 @@ struct WaveHeader *readHeader(FILE *fp, struct WaveHeader *header)
 
 void readDataIntoBuffer(float *b, FILE *fp)
 {
+    readAmountIntoBuffer(512, b, fp);
+}
+
+void readAmountIntoBuffer(int samples, float *b, FILE *fp)
+{
     int i = 0;
     short int sample = 0;
-    for (i = 0; i < 512; i++)
+    for (i = 0; i < samples; i++)
     {
         fread(&sample, 1, 2, fp);
         b[i] = sample;

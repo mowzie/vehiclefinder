@@ -26,7 +26,11 @@ int main(int argc, char *argv[]) {
     struct WaveHeader *wav = malloc(sizeof(struct WaveHeader));
     readHeader(fp, wav);
     printHeader(wav);
-    frames = wav->chunk_size / (wav->block_align * 512);
+    buckets = 512;
+    int frameSamples = (int) (((long) wav->sample_rate) / (1000000 / frameMicroseconds));
+    frames = (wav->datachunk_size / wav->block_align) / frameSamples;
+
+    printf("buckets: %i, frames: %i\r\n", frameSamples, frames);
 
 	in = (float*) calloc(buckets, sizeof(float));
 	out = (float*) calloc(buckets, sizeof(float));
@@ -41,7 +45,8 @@ int main(int argc, char *argv[]) {
 	}
 
     for (i = 0; i < frames; i++) {
-        readDataIntoBuffer(in, fp);
+        memcpy(in, in + frameSamples, sizeof(float) * (buckets - frameSamples));
+        readAmountIntoBuffer(frameSamples, in + (buckets - frameSamples), fp);
         fftwf_execute(p); /* repeat as needed */
 
         memcpy(spectro_channel0[i], out, sizeof(float) * buckets);
@@ -68,7 +73,8 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < buckets; i++)
         for (j = 0; j < frames; j++) {
 
-            float brightness = log10(fabs(spectro_channel0[j][buckets - i])) / log10(fabs(max));
+            //float brightness = log10(fabs(spectro_channel0[j][buckets - i])) / log10(fabs(max));
+            float brightness = fabs(spectro_channel0[j][buckets - i]) / fabs(max);
             if (brightness > 1)
                 brightness = 1;
             if (brightness < 0)
