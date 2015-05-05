@@ -78,10 +78,8 @@ void processData(int freq, int numOfSamples, short int *chan1) {
 
   for (i = 0; i < numOfSamples; i+=(BUFFERSIZE-(BUFFERSIZE/2))) {
     for (j = 0; j < BUFFERSIZE; j++) {
-
-      foo[j] = chan1[i+j];
-      //printf("%d\n", foo[j]);
-      //getchar();
+      if ((i+j) < numOfSamples)
+        foo[j] = chan1[i+j];
     }
     /*
     printf("%d 530 %f \n", i+BUFFERSIZE, goertzel(BUFFERSIZE,530,freq, foo));
