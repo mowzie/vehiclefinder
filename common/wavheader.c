@@ -1,8 +1,4 @@
-
-
 #include "wavheader.h"
-
-
 
 
 struct WaveHeader *headerCreate()
@@ -32,7 +28,7 @@ void printHeader(struct WaveHeader *header)
       printf("%c", header->fmtID[i]);
     }
     printf("\n");
-    printf("fmt size: %d\n", header->fmtchunk_size);
+        printf("fmt size: %d\n", header->fmtchunk_size);
     printf("format tag: %hu\n", header->wFormatTag);
     printf("N channels: %hu\n", header->nChannels);
     printf("Sample per sec: %d\n", header->sample_rate);
@@ -50,6 +46,9 @@ void printHeader(struct WaveHeader *header)
 
 struct WaveHeader *readHeader(FILE *fp, struct WaveHeader *header)
 {
+  char name[4];
+  int result;
+  int cont = 0;
 
   if (fp)
   {
@@ -65,13 +64,22 @@ struct WaveHeader *readHeader(FILE *fp, struct WaveHeader *header)
     fread(&header->byte_rate, sizeof(int), 1, fp);
     fread(&header->block_align, sizeof(short int), 1, fp);
     fread(&header->bps, sizeof(short int), 1, fp);
-    fread(&header->datachunk_id, sizeof(char), 4, fp);
-    fread(&header->datachunk_size, sizeof(int), 1, fp);
+    //data chucnk should be the next one
+    //implement a catch just in case
+    fread(&name, sizeof(char), 4, fp);
+    while (!cont) {
 
-  //  for (i = 0; i < numOfSamples; i+=512)
-  //  {
-  //     readDataIntoBuffer(foo, fp);
-  //  }
+      if (name[0] != 'd' || name[1] != 'a' || name[2] != 't' || name[3] != 'a') {
+        printf("**%s\n", name);
+        advanceToNextChunk(fp);
+        fread(&name, sizeof(char), 4, fp);
+      }
+      else
+          cont = 1;
+    }
+    fseek(fp,-4,SEEK_CUR);
+    fread(&header->datachunk_id, sizeof(char),4,fp);
+    fread(&header->datachunk_size, sizeof(int),1,fp);
   }
   return header;
 }
@@ -79,6 +87,40 @@ struct WaveHeader *readHeader(FILE *fp, struct WaveHeader *header)
 void readDataIntoBuffer(float *b, FILE *fp)
 {
     readAmountIntoBuffer(512, b, fp);
+}
+
+
+void advanceToNextChunk(FILE *fp)
+{
+  int size = 0;
+  fread(&size, sizeof(int), 1, fp);
+  fseek(fp,size,SEEK_CUR);
+}
+
+void readAllData(FILE *fp, struct WaveHeader *header)
+{
+  int i = 0;
+  int numOfSamples = 0;
+  numOfSamples = header->datachunk_size / (header->nChannels * (header->bps / 8));
+
+
+  header->chan1 = malloc(numOfSamples  * sizeof(short int));
+  if (header->nChannels > 1)
+    header->chan2 = malloc((numOfSamples  * sizeof(short int)));
+  if (header->nChannels > 2)
+    header->chan3 = malloc((numOfSamples  * sizeof(short int)));
+  if (header->nChannels > 3)
+    header->chan4 = malloc((numOfSamples  * sizeof(short int)));
+
+  for (i = 0; i < header->datachunk_size / header->block_align; i++) {
+    fread(&header->chan1[i],1,2,fp);
+    if (header->nChannels > 1)
+      fread(&header->chan2[i],1,2,fp);
+    if (header->nChannels > 2)
+      fread(&header->chan3[i],1,2,fp);
+    if (header->nChannels > 3)
+      fread(&header->chan4[i],1,2,fp);
+  }
 }
 
 void readAmountIntoBuffer(int samples, float *b, FILE *fp)

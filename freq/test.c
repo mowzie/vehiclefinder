@@ -6,15 +6,21 @@
 
 int main(int argc, char *argv[])
 {
-  short int *chan1;
+
   short int sample;
   int i = 0;
   unsigned int numOfSamples = 0;
   struct WaveHeader *wav = malloc(sizeof(struct WaveHeader));
   int samplerate = 0;
   FILE * fp;
+  FILE * fOut;
 
   fp = fopen(argv[1], "rb");
+  fOut = fopen("foo.wav", "wb");
+
+  if (!fOut)
+    return 0;
+
   if (!fp)
     return 0;
 
@@ -24,19 +30,35 @@ int main(int argc, char *argv[])
   samplerate = wav->sample_rate;
   numOfSamples = wav->datachunk_size / (wav->nChannels * (wav->bps / 8));
 
-  //code expects mono channel, read in one channel and store into array
-  chan1 = malloc(numOfSamples  * sizeof(short int));
-  for (i = 0; i < numOfSamples; i++) {
-    fread(&sample,1,2,fp);
-    chan1[i] = sample;
-  }
+  readAllData(fp,wav);
 
-  //don't need the header anymore
-  free(wav);
   //process the data
-  processData(samplerate, numOfSamples, chan1);
-  free(chan1);
+  processData(samplerate, numOfSamples, wav->chan1);
+  /*
+  //test code to write out raw data as it was read in
+  for (i = 0; i < numOfSamples; i++) {
+    fwrite(&wav->chan1[i],1,2,fOut);
+    if (wav->nChannels > 1)
+      fwrite(&wav->chan2[i],1,2,fOut);
+    if (wav->nChannels > 2)
+      fwrite(&wav->chan3[i],1,2,fOut);
+    if (wav->nChannels > 3)
+      fwrite(&wav->chan4[i],1,2,fOut);
+  }
+  */
+  //don't need the header anymore
+  free(wav->chan1);
+  if (wav->nChannels >1)
+    free(wav->chan2);
+  if (wav->nChannels >2)
+    free(wav->chan3);
+  if (wav->nChannels >3)
+    free(wav->chan4);
+  free(wav);
+
+
   fclose(fp);
+  fclose(fOut);
   return 0;
 }
 

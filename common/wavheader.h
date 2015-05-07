@@ -15,9 +15,16 @@ struct WaveHeader{
     short int         bps;
     char               datachunk_id[4];
     unsigned int      datachunk_size;
+    short int * chan1;
+    short int * chan2;
+    short int * chan3;
+    short int * chan4;
 };
+
 
 void readDataIntoBuffer(float *b, FILE *fp);
 void readAmountIntoBuffer(int samples, float *b, FILE *fp);
 struct WaveHeader *readHeader(FILE *fp, struct WaveHeader *header);
 void printHeader(struct WaveHeader *header);
+void advanceToNextChunk(FILE *fp);
+void readAllData(FILE *fp, struct WaveHeader *header);
