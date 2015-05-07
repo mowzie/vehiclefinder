@@ -1,39 +1,54 @@
 #include <stdio.h>
 #include "../common/wavheader.h"
 #include <time.h>
-
+#define BUFFERSIZE 140
 
 
 int main(int argc, char *argv[])
 {
-
+short int foo [BUFFERSIZE];
   short int sample;
   int i = 0;
+  int j = 0;
   unsigned int numOfSamples = 0;
   struct WaveHeader *wav = malloc(sizeof(struct WaveHeader));
   int samplerate = 0;
-  FILE * fp;
+  FILE * fChan1;
+  FILE * fChan2;
+  FILE * fChan3;
+  FILE * fChan4;
+
   FILE * fOut;
 
-  fp = fopen(argv[1], "rb");
-  fOut = fopen("foo.wav", "wb");
+  fChan1 = fopen(argv[1], "rb");
+  //fChan1 = fopen(argv[2], "rb");
+  //fChan1 = fopen(argv[3], "rb");
+  //fChan1 = fopen(argv[4], "rb");
 
-  if (!fOut)
+
+
+  if (!fChan1)
     return 0;
 
-  if (!fp)
-    return 0;
-
-  readHeader(fp, wav);
+  readHeader(fChan1, wav);
   //printHeader(wav);
 
   samplerate = wav->sample_rate;
   numOfSamples = wav->datachunk_size / (wav->nChannels * (wav->bps / 8));
 
-  readAllData(fp,wav);
+  readAllData(fChan1,wav);
 
   //process the data
-  processData(samplerate, numOfSamples, wav->chan1);
+  for (i = 0; i < numOfSamples; i+=(BUFFERSIZE-(BUFFERSIZE/2))) {
+    for (j = 0; j < BUFFERSIZE; j++) {
+      if ((i+j) < numOfSamples)
+        foo[j] = wav->chan1[i+j];
+    }
+
+
+  if (processData(samplerate, i, foo))
+    break;
+  }
   /*
   //test code to write out raw data as it was read in
   for (i = 0; i < numOfSamples; i++) {
@@ -51,8 +66,8 @@ int main(int argc, char *argv[])
   free(wav);
 
 
-  fclose(fp);
-  fclose(fOut);
+  fclose(fChan1);
+
   return 0;
 }
 
