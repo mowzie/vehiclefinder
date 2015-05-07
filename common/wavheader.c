@@ -134,3 +134,14 @@ void readAmountIntoBuffer(int samples, float *b, FILE *fp)
     }
     return;
 }
+
+void freeChannelMemory(struct WaveHeader *wav)
+{
+    free(wav->chan1);
+  if (wav->nChannels >1)
+    free(wav->chan2);
+  if (wav->nChannels >2)
+    free(wav->chan3);
+  if (wav->nChannels >3)
+    free(wav->chan4);
+}

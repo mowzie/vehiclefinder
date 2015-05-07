@@ -47,13 +47,7 @@ int main(int argc, char *argv[])
   }
   */
   //don't need the header anymore
-  free(wav->chan1);
-  if (wav->nChannels >1)
-    free(wav->chan2);
-  if (wav->nChannels >2)
-    free(wav->chan3);
-  if (wav->nChannels >3)
-    free(wav->chan4);
+  freeChannelMemory(wav);
   free(wav);
 
 

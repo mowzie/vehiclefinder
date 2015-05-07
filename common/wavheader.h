@@ -28,3 +28,4 @@ struct WaveHeader *readHeader(FILE *fp, struct WaveHeader *header);
 void printHeader(struct WaveHeader *header);
 void advanceToNextChunk(FILE *fp);
 void readAllData(FILE *fp, struct WaveHeader *header);
+void freeChannelMemory(struct WaveHeader *wav);
