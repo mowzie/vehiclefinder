@@ -26,11 +26,10 @@ int main(int argc, char *argv[]) {
     struct WaveHeader *wav = malloc(sizeof(struct WaveHeader));
     readHeader(fp, wav);
     printHeader(wav);
-    buckets = 512;
     int frameSamples = (int) (((long) wav->sample_rate) / (1000000 / frameMicroseconds));
-    frames = (wav->datachunk_size / wav->block_align) / frameSamples;
+    frames = (wav->chunk_size / wav->block_align) / frameSamples;
 
-    printf("buckets: %i, frames: %i\r\n", frameSamples, frames);
+    printf("frame samples: %i, frames: %i\r\n", frameSamples, frames);
 
 	in = (float*) calloc(buckets, sizeof(float));
 	out = (float*) calloc(buckets, sizeof(float));
@@ -66,7 +65,7 @@ int main(int argc, char *argv[]) {
                 max = spectro_channel0[i][j];
         }
     }
-    char* filename = strcat(argv[1], "_wav.ppm");
+    char* filename = strcat(argv[1], "_spect.ppm");
     FILE *f = fopen(filename, "wb");
     fprintf(f, "P6\n%i %i 255\n", frames, buckets);
     for (i = 0; i < buckets; i++)

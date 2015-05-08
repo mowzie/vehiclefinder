@@ -1,6 +1,6 @@
-int buckets = 512;
+int buckets = 256;
 int frames = 512;
-frameMicroseconds = 500;
+frameMicroseconds = 300;
 
 float **spectro_channel0;
 float **spectro_channel1;
