@@ -48,7 +48,9 @@ Angle = (P * 57.2957795)+360;
 
 %make it so that when the angle is equal to 360 degrees to make it 0
 %degrees. 
-if Angle == 360
-    Angle = 0
+if Angle > 360
+    Angle = (P * 57.2957795)
+elseif Angle == 360
+        Angle = 0
 end
 
