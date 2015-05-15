@@ -10,7 +10,7 @@ struct WaveHeader{
     int                chunkSize;
     char               wavID[4];
     char               fmtID[4];
-    unsigned short int fmtChunkSize;
+    unsigned int fmtChunkSize;
     unsigned short int wFormatTag;
     short int          nChannels;
     int                sampleRate;
