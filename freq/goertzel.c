@@ -2,13 +2,12 @@
 #include <stdio.h>
 #define BUFFERSIZE 512
 
-#define WAILHI   1700
-#define PIERCEHI 1600
-#define YELPHI   1150
-#define WAILLOW   800    //can these two be combined?
-#define PIERCELOW 790  //
-#define YELPLOW   500
-
+#define WAILHI   1600
+#define PIERCEHI 1640
+#define YELPHI   1110
+#define WAILLOW  800     //can these two be combined?
+#define PIERCELOW 780  //
+#define YELPLOW   1250 //500
 
 //#define YELPLOW 610 //police.wav
 
@@ -59,8 +58,8 @@ int processData(int freq, int sample, short int *foo) {
 
   //static int i = 0;
  // int j = 0;
- // float first = 0.0;
- // float second = 0.0;
+  float first = 0.0;
+  float second = 0.0;
   float power = 0.0;
   //int count = 0;
  // int last = 0;
@@ -72,13 +71,39 @@ int processData(int freq, int sample, short int *foo) {
   static int yelpC = 0;
   static int lastPierce = 0;
   static int lastYelp = 0;
+
   int hilo = 0;
   //int hiloC = 0;
   //short int foo [BUFFERSIZE];
 
-
+//   printf("%d clap %f \n", sample, power);
 
 //  power = goertzel(YELPLOW,freq, foo);
+
+/*
+printf("%d 500 %f \n", sample, goertzel(500,freq, foo));
+printf("%d 505 %f \n", sample, goertzel(505,freq, foo));
+printf("%d 510 %f \n", sample, goertzel(510,freq, foo));
+printf("%d 515 %f \n", sample, goertzel(515,freq, foo));
+printf("%d 520 %f \n", sample, goertzel(520,freq, foo));
+printf("%d 525 %f \n", sample, goertzel(525,freq, foo));
+printf("%d 530 %f \n", sample, goertzel(530,freq, foo));
+printf("%d 535 %f \n", sample, goertzel(535,freq, foo));
+printf("%d 540 %f \n", sample, goertzel(540,freq, foo));
+printf("%d 545 %f \n", sample, goertzel(545,freq, foo));
+printf("%d 550 %f \n", sample, goertzel(550,freq, foo));
+printf("%d 555 %f \n", sample, goertzel(555,freq, foo));
+printf("%d 560 %f \n", sample, goertzel(560,freq, foo));
+printf("%d 565 %f \n", sample, goertzel(565,freq, foo));
+printf("%d 570 %f \n",sample, goertzel(570,freq, foo));
+printf("%d 575 %f \n",sample, goertzel(575,freq, foo));
+printf("%d 580 %f \n", sample, goertzel(580,freq, foo));
+printf("%d 585 %f \n", sample, goertzel(585,freq, foo));
+printf("%d 590 %f \n", sample, goertzel(590,freq, foo));
+printf("%d 595 %f \n", sample, goertzel(595,freq, foo));
+
+
+*/
 /*
     printf("%d 600 %f \n", sample, goertzel(600,freq, foo));
     printf("%d 605 %f \n", sample, goertzel(605,freq, foo));
@@ -121,9 +146,6 @@ int processData(int freq, int sample, short int *foo) {
     printf("%d 790 %f \n", sample, goertzel(790,freq, foo));
     printf("%d 795 %f \n", sample, goertzel(795,freq, foo));
     printf("%d 800 %f \n", sample, goertzel(800,freq, foo));
-
-
-
     printf("%d 805 %f \n", sample, goertzel(805,freq, foo));
     printf("%d 810 %f \n", sample, goertzel(810,freq, foo));
     printf("%d 815 %f \n", sample, goertzel(815,freq, foo));
@@ -162,10 +184,56 @@ int processData(int freq, int sample, short int *foo) {
     printf("%d 980 %f \n", sample, goertzel(980,freq, foo));
     printf("%d 985 %f \n", sample, goertzel(985,freq, foo));
     printf("%d 990 %f \n", sample, goertzel(990,freq, foo));
+
+    /*
     printf("%d 995 %f \n", sample, goertzel(995,freq, foo));
     printf("%d 1000 %f \n", sample, goertzel(1000,freq, foo));
-*/
 
+
+printf("%d 1105 %f \n", sample, goertzel(1105,freq, foo));
+printf("%d 1110 %f \n", sample, goertzel(1110,freq, foo));
+printf("%d 1115 %f \n", sample, goertzel(1115,freq, foo));
+printf("%d 1120 %f \n", sample, goertzel(1120,freq, foo));
+printf("%d 1125 %f \n", sample, goertzel(1125,freq, foo));
+printf("%d 1130 %f \n", sample, goertzel(1130,freq, foo));
+printf("%d 1135 %f \n", sample, goertzel(1135,freq, foo));
+printf("%d 1140 %f \n", sample, goertzel(1140,freq, foo));
+printf("%d 1145 %f \n", sample, goertzel(1145,freq, foo));
+printf("%d 1150 %f \n", sample, goertzel(1150,freq, foo));
+printf("%d 1155 %f \n", sample, goertzel(1155,freq, foo));
+printf("%d 1160 %f \n", sample, goertzel(1160,freq, foo));
+printf("%d 1165 %f \n", sample, goertzel(1165,freq, foo));
+printf("%d 1170 %f \n", sample, goertzel(1170,freq, foo));
+printf("%d 1175 %f \n", sample, goertzel(1175,freq, foo));
+printf("%d 1180 %f \n", sample, goertzel(1180,freq, foo));
+printf("%d 1185 %f \n", sample, goertzel(1185,freq, foo));
+printf("%d 1190 %f \n", sample, goertzel(1190,freq, foo));
+printf("%d 1195 %f \n", sample, goertzel(1195,freq, foo));
+printf("%d 1200 %f \n", sample, goertzel(1200,freq, foo));
+
+
+
+
+printf("%d 1505 %f \n", sample, goertzel(1505,freq, foo));
+printf("%d 1510 %f \n", sample, goertzel(1510,freq, foo));
+printf("%d 1515 %f \n", sample, goertzel(1515,freq, foo));
+printf("%d 1520 %f \n", sample, goertzel(1520,freq, foo));
+printf("%d 1525 %f \n", sample, goertzel(1525,freq, foo));
+printf("%d 1530 %f \n", sample, goertzel(1530,freq, foo));
+printf("%d 1535 %f \n", sample, goertzel(1535,freq, foo));
+printf("%d 1540 %f \n", sample, goertzel(1540,freq, foo));
+printf("%d 1545 %f \n", sample, goertzel(1545,freq, foo));
+printf("%d 1550 %f \n", sample, goertzel(1550,freq, foo));
+printf("%d 1555 %f \n", sample, goertzel(1555,freq, foo));
+printf("%d 1560 %f \n", sample, goertzel(1560,freq, foo));
+printf("%d 1565 %f \n", sample, goertzel(1565,freq, foo));
+printf("%d 1570 %f \n", sample, goertzel(1570,freq, foo));
+printf("%d 1575 %f \n", sample, goertzel(1575,freq, foo));
+printf("%d 1580 %f \n", sample, goertzel(1580,freq, foo));
+printf("%d 1585 %f \n", sample, goertzel(1585,freq, foo));
+printf("%d 1590 %f \n", sample, goertzel(1590,freq, foo));
+printf("%d 1595 %f \n", sample, goertzel(1595,freq, foo));
+*/
 /*
 printf("%d 1600 %f \n", sample, goertzel(1600,freq, foo));
 printf("%d 1605 %f \n", sample, goertzel(1605,freq, foo));
@@ -208,8 +276,8 @@ printf("%d 1785 %f \n", sample, goertzel(1785,freq, foo));
 printf("%d 1790 %f \n", sample, goertzel(1790,freq, foo));
 printf("%d 1795 %f \n", sample, goertzel(1795,freq, foo));
 printf("%d 1800 %f \n", sample, goertzel(1800,freq, foo));
+/*
 */
-
 
 
 //960
@@ -261,24 +329,28 @@ printf("%d 1800 %f \n", sample, goertzel(1800,freq, foo));
 
 
 power = goertzel(WAILLOW,freq, foo);
-
-if (power > 300) {
-  if ((sample - lastWail) > 600) {
+first = power;
+if (power > 1050) {
+  if ((sample - lastWail) > 60000) {
     wailC++;
+    lastWail = sample;
+    //printf("%d\tlow\t%f\t%d\n", sample,power,wailC);
   }
-  lastWail = sample;
+
 }
 power = goertzel(WAILHI,freq, foo);
-
-if (power > 220) {
-  if ((sample-lastYelp) > 600) {
+second = power;
+if (power > 6000) {
+  if ((sample-lastWail) > 80000) {
     wailC++;
+    lastWail = sample;
+    //printf("%d\thi\t%f\t%d\n", sample,power,wailC);
   }
-  lastWail = sample;
+
 }
-if ((sample - lastWail) > 3000)
-wailC = 0;
-if (wailC >15) {
+if ((sample - lastWail) > 200000)
+  wailC = 0;
+if (wailC >1500) {
   printf("*********WAIL*********");
   return 1;
 }
@@ -286,27 +358,35 @@ if (wailC >15) {
 
 //////////////////////////////////////
 power = goertzel(YELPLOW,freq, foo);
-
-if (power > 300) {
-  if ((sample - lastPierce) > 600) {
-    //printf("%d\tlow\t%d\n", sample,yelpC);
+first = power;
+if (power > 1200) {
+  printf("%d \t %f", sample, power);
+  if ((sample - lastYelp) > 6000) {
     yelpC++;
+    lastYelp = sample;
+
   }
-  lastYelp = sample;
+} else {
+  printf("%d \t 0", sample);
 }
 power = goertzel(YELPHI,freq, foo);
-
-if (power > 220) {
-  if ((sample-lastYelp) > 600) {
-    //printf("%d\thi\t%d\n", sample,yelpC);
+second = power;
+if (power > 1200) {
+  //printf("%d\thi\t%f\t%d yelp\n", sample,power,yelpC);
+  printf("\t %f \n", power);
+  if ((sample-lastYelp) > 4000) {
     yelpC++;
+    lastYelp = sample;
+
   }
-  lastYelp = sample;
+} else {
+  printf("\t 0\n");
 }
-if ((sample - lastYelp) > 3000)
+if ((sample - lastYelp) > 10000)
 yelpC = 0;
-if (yelpC >15) {
-  printf("*********YELP*********");
+if (yelpC >400000) {
+//  printf("*********YELP*********\n");
+  yelpC = 0;
   return 1;
 }
 ///////////////////////////////////
@@ -318,27 +398,31 @@ if (yelpC >15) {
 //average yelp cycle is between 700-770 (based on sample size)
 
       power = goertzel(PIERCELOW,freq, foo);
-
+//      printf("%d\tlow\t %f \t%d pierce\n", sample, power,pierceC);
       if (power > 300) {
-        if ((sample - lastPierce) > 600) {
-          //printf("%d\tlow\t%d\n", sample,yelpC);
+        if ((sample - lastPierce) > 2000) {
+          lastPierce = sample;
           pierceC++;
+
         }
-        lastPierce = sample;
+    //    printf("%d\tlow\t %f \t%d pierce\n", sample, power,pierceC);
+
       }
       power = goertzel(PIERCEHI,freq, foo);
 
-      if (power > 220) {
-        if ((sample-lastPierce) > 600) {
-          //printf("%d\thi\t%d\n", sample,yelpC);
+      if (power > 250) {
+        if ((sample-lastPierce) > 2000) {
+          lastPierce = sample;
           pierceC++;
         }
-        lastPierce = sample;
+      //  printf("%d\thi\t%f\t%d pierce\n", sample,power,pierceC);
+
       }
       if ((sample - lastPierce) > 3000)
         pierceC = 0;
-      if (pierceC >15) {
-        printf("*********PIERCE*********");
+      if (pierceC >4) {
+      //  printf("*********PIERCE*********\n");
+        pierceC = 0;
         return 1;
       }
 

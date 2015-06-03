@@ -3,12 +3,17 @@
 #include <string.h>
 #include "../common/wavheader.h"  //local file
 #include <fftw3.h>      //3rd party library, needs to be installed
-
-#define BUFFERSIZE 140
+#include <time.h>
+#define BUFFERSIZE 512
 
 void showUsage();
 int writeGpScript(char *datName, int rate, int);
-int writeFFT(int N, struct WaveHeader *wav);
+int writeFFT(int N, int,struct WaveHeader *wav);
+float getTimeDomainCC(double* sigA, double* sigB, int N);
+int AutoCorrelate(int, int numSamples, double *sample);
+
+
+
 
 //-----------------------------------------------------------------------------
 //   Function:    main()
@@ -47,19 +52,23 @@ int writeFFT(int N, struct WaveHeader *wav);
 
 int main(int argc, char *argv[])
 {
+  clock_t start, sirenTime, directionTime;
+  int point = 0;
   int i = 0;
   int j = 0;
   unsigned int N = 0;
   int spec = 0;
   int siren = 0;
   int showHead = 0;
-  //int samplerate = 0;
-  //unsigned int numOfSamples = 0;
   char fileName[300];
   struct WaveHeader *wav;
   FILE *fWavIn = NULL;
-short int foo [BUFFERSIZE];
-
+  FILE *fOut = NULL;
+  double foo [BUFFERSIZE];
+  short int *fnew;
+  double *ftest;
+  int min = 10000;
+  int max = 0;
   //ToDO:  better error handling
 
   if (argc < 3) {
@@ -67,14 +76,13 @@ short int foo [BUFFERSIZE];
     return 1;
   }
 
-  printf("Total args %d\n", argc);
+//  printf("Total args %d\n", argc);
   for (i = 1; i < (argc); i++) {
-
-    if (strcasecmp("-spec", argv[i])==0) {
+    if (strcasecmp("-spec", argv[i]) == 0) {
       spec = 1;
 
-      if (i+1 == argc) {
-        fprintf(stderr,"\n**ERROR: No sample size associated with \"-spec\"**\n");
+      if (i + 1 == argc) {
+        fprintf(stderr, "\n**ERROR: No sample size associated with \"-spec\"**\n");
         return 1;
       }
 
@@ -85,85 +93,116 @@ short int foo [BUFFERSIZE];
       }
       continue;
     }
-    if (strcmp("-?", argv[i])==0) {
+    if (strcmp("-?", argv[i]) == 0) {
       showUsage();
       return 1;
     }
-    if (strcasecmp("-siren", argv[i])==0) {
+    if (strcasecmp("-siren", argv[i]) == 0) {
       siren = 1;
       continue;
     }
 
-    if (strcasecmp("-showhead", argv[i])==0) {
+    if (strcasecmp("-showhead", argv[i]) == 0) {
       showHead = 1;
       continue;
     }
-    if (strcasecmp("-file", argv[i])==0) {
+    if (strcasecmp("-file", argv[i]) == 0) {
       //require a filename to go along with the -file
       //check -file isn't the last arg, otherwise it throws a sigsegv
-      if (i+1 == argc) {
-        fprintf(stderr,"\n**ERROR: No filename listed with \"-file\"\n");
+      if (i + 1 == argc) {
+        fprintf(stderr, "\n**ERROR: No filename listed with \"-file\"\n");
         return 1;
       }
-      strncpy(fileName, argv[++i],300);
+      strncpy(fileName, argv[++i], 300);
       fWavIn = fopen(fileName, "rb");
       if (!fWavIn) {
-        fprintf(stderr,"\n**ERROR: Could not open file \"%s\"\n", fileName);
+        fprintf(stderr, "\n**ERROR: Could not open file \"%s\"\n", fileName);
         return 1;
       }
       continue;
     }
   }
-
+fOut = fopen("new.wav", "wb");
   //it's a little hacky, but this checks if we have a file
-  if(fWavIn==NULL) {
+  if (fWavIn == NULL) {
     showUsage();
     return 1;
   }
 
   //return 0;
   wav = malloc(sizeof(struct WaveHeader));
-  strncpy(wav->wavName,fileName ,300);
+
+  strncpy(wav->wavName, fileName, 300);
   if (readHeader(fWavIn, wav) != 0) {
-    fprintf(stderr, "Error reading (%s), check if it is a valid wav file\n",fileName);
+    fprintf(stderr, "Error reading (%s), check if it is a valid wav file\n", fileName);
     return 1;
   }
   if (showHead == 1) {
     printHeader(wav);
   }
-  readAllData(fWavIn,wav);
-
-
+  readAllData(fWavIn, wav);
+  fnew = malloc(wav->totalSamples  * sizeof(short int));
+  ftest = malloc(BUFFERSIZE * 2*sizeof(short int));
+  //writeFFT(N, 102186, wav);
   //process the data
+  start = clock();
+
+
   if (siren) {
-    for (i = 0; i < wav->totalSamples; i+=(BUFFERSIZE-(BUFFERSIZE/2))) {
+    for (i = 0; i < wav->totalSamples; i += (BUFFERSIZE - (BUFFERSIZE / 2))) {
       for (j = 0; j < BUFFERSIZE; j++) {
-        if ((i+j) < wav->totalSamples) {
-          foo[j] = wav->chan1[i+j];
+        if ((i + j) < wav->totalSamples) {
+          foo[j] = wav->chan2[i + j]*(0.54 - 0.46 * cos(2 * M_PI * i / BUFFERSIZE));
         }
       }
 
+      //Processes with Goertzel algorithm
+
+      ftest[point] = AutoCorrelate(i, BUFFERSIZE, foo);
+      point++;
+      if (point > BUFFERSIZE /2) {
+        point = 0;
+        for (j =0; j < BUFFERSIZE/2; j++)
+        {
+          if (ftest[j] > max) max = ftest[j];
+          if (ftest[j] < min) min = ftest[j];
+        //  printf("max: %d  min: %d\n", max, min);
+        }
+      //  printf("%d %d\n", i,AutoCorrelate(i, BUFFERSIZE / 2, ftest));
+max = 0;
+min = 1000;
+      }
+
+      continue;
       if (processData(wav->sampleRate, i, foo)) {
-        break;
+        //sirenTime = clock()-start;
+  //     printf("\nsiren detection time: %f\n", (float)(sirenTime / CLOCKS_PER_SEC));
+        if (spec == 1) {
+          CalculateDirection(N, i, wav);
+          //directionTime = clock()-sirenTime;
+    //      printf("\ndirection detection time: %ld\n", directionTime / CLOCKS_PER_SEC);
+        }      //break;
       }
     }
   }
+if (spec == 1) {
+  writeFFT(N, 0, wav);
+}
 
-  if (spec == 1) {
-    writeFFT(N, wav);
-  }
+
+//  }
   /*
-  //test code to write out raw data as it was read in
-  for (i = 0; i < numOfSamples; i++) {
-    fwrite(&wav->chan1[i],1,2,fOut);
-    if (wav->nChannels > 1)
+     //test code to write out raw data as it was read in
+     for (i = 0; i < numOfSamples; i++) {
+     fwrite(&wav->chan1[i],1,2,fOut);
+     if (wav->nChannels > 1)
       fwrite(&wav->chan2[i],1,2,fOut);
-    if (wav->nChannels > 2)
+     if (wav->nChannels > 2)
       fwrite(&wav->chan3[i],1,2,fOut);
-    if (wav->nChannels > 3)
+     if (wav->nChannels > 3)
       fwrite(&wav->chan4[i],1,2,fOut);
-  }
-  */
+     }
+   */
 
   //free up memory
   freeChannelMemory(wav);
@@ -172,6 +211,80 @@ short int foo [BUFFERSIZE];
 
   return 0;
 }
+
+int AutoCorrelate(int foo, int N, double *sample) {
+  int i = 0;
+  int j = 0;
+  float result = 0.0;
+  int pd_state = 0;
+  float freq = 0.0;
+  int thresh = 0;
+  int minLoc = 0;
+  int maxLoc = 0;
+  float result_old;
+  float period;
+  double min = 20000;
+  double max = 0;
+  static int downCount = 0;
+  static int upCount = 0;
+  static int counter = 0;
+  int signChange = 0;
+
+
+  for(i=1; i < N; i++) {
+    result_old = result;
+    result = 0;
+    for(j=0; j < N-i; j++)
+      result += (sample[j])*(sample[i+j]);
+    result /= (2*N+1);
+
+    if (result < min) {min = result;minLoc = i;}
+    if (result > max) {max = result;maxLoc = i;}
+
+    if (pd_state == 2 && (result-result_old) <=0) {
+      if (result < 5*(max-min)) {
+      period = i;
+      pd_state = 3;
+    }
+    signChange++;
+    }
+
+
+
+    if (pd_state == 1 && (result > thresh) && (result-result_old) > 0) {
+      pd_state = 2;
+      signChange++;
+    }
+    if (pd_state==0) {
+      thresh = result * 0.5;
+
+
+      pd_state = 1;
+    }
+  }
+
+  if ((int)(44100/period - 44100/minLoc) >75) {
+    printf("max-min: %d\n", (44100/(int)period - 44100/minLoc));
+    printf("loc: %d\n", abs(minLoc-period));
+    if ((abs(minLoc - period) > 25) && (abs(minLoc - period) < 44))
+    if (signChange == 2)
+      printf("%d *****yelp!\n", foo);
+}
+
+
+
+
+  //printf("%d\n", signChange);
+
+  freq = 44100/(period);
+
+
+  //printf("%d %f\n", foo,freq);
+  return (int) freq;
+}
+
+
+
 
 
 //-----------------------------------------------------------------------------
@@ -207,129 +320,409 @@ void showUsage() {
   printf("\n");
 }
 
+float getTimeDomainCC(double* sigA, double* sigB, int N) {
+  double mA, mB,mAB,sA,sB;
+  double max = 0;
+  double denom = 0;
+  double rdelay = 0;
+  double delay = 0;
+  double maxDelay = 200;
+  double tDelta = 0;
+  int j;
+  FILE * xbarFile;
+  char datxbar[300] = "xbar.dat";
+  int foo = 0;
 
-
-//TODO: nest in channel for multi-channel plot
-int writeFFT(int N, struct WaveHeader *wav){
-  int i, j;
-  double *in;
-  double mag = 0.0;
-  double freqBin = 0.0;
-  double correction = 0.0;
-  fftw_complex * out;
-  fftw_plan my_plan;
-  FILE * fDatOut;
-  int nameLength = 0;
-  char datFilename[300];
-
-  //add ".dat" to the end of the file
-  //will fix later to rename ".wav"
-  nameLength  = sizeof(wav->wavName)/sizeof(wav->wavName[0]);
-  snprintf(datFilename, nameLength+4, "%s.dat", wav->wavName);
-  fDatOut = fopen(datFilename, "w");
-  //Not sure how to test this one
-  if (!fDatOut) {
-    fprintf(stderr,"\n**ERROR opening dat file for writing!**\n");
+  xbarFile = fopen(datxbar, "w");
+  if (!xbarFile) {
+    fprintf(stderr, "\n**ERROR opening dat file for writing!**\n");
     return 1;
   }
 
-  correction = (double)wav->sampleRate / (double)N;
-  in = (double*) fftw_malloc(sizeof(double)*N);
-  out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*((N/2)+1));
-  my_plan = fftw_plan_dft_r2c_1d(N, in, out, FFTW_MEASURE);
+  for (j = 0; j < N; j++) {
+    mA += sigA[j];
+    mB += sigB[j];
+  }
+  mA /= N;
+  mB /= N;
+  sA = 0;
+  sB = 0;
 
-  printf("Calcuting FFT, placing dat file at \'%s\'\n",datFilename);
+  for (j = 0; j < N; j++) {
+    sA += (sigA[j] - mA) * (sigA[j] - mA);
+    sB += (sigB[j] - mB) * (sigB[j] - mB);
+  }
+  denom = sqrtf(sA * sB);
+//printf("check delay\n");
 
-  //Iterate through the entire wav file, overlap & add by buffer size
-  for (i = 0; i < wav->totalSamples; i=i+(N-N/2)) {
-    //Iterate through the sample size
+  for (delay = -maxDelay; delay < maxDelay; delay++) {
+    mAB = 0;
     for (j = 0; j < N; j++) {
-      if ((i+j) < wav->totalSamples) {
-        in[j] =  wav->chan1[(i+j)]*(0.54 - 0.46 * cos(2 * M_PI * j / (N-1)));
+      foo = j + delay;
+      if (foo < 0 || foo >= N)
+        continue;
+      else {
+        mAB += (sigA[j] - mA) * (sigB[foo] - mB);
       }
     }
 
-    //Perform FFT for the sample size
-    fftw_execute(my_plan);
+    rdelay = mAB / denom;
+    fprintf(xbarFile, "%f %f\n",delay, fabs(rdelay));
 
+    if (fabs(rdelay) > fabs(max)) {
+      max = rdelay;
+      tDelta = delay / 44100;
+    }
+  }
+  fclose(xbarFile);
+  return tDelta;
+}
+
+int CalculateDirection(int N, int i, struct WaveHeader *wav) {
+  int j;
+  double xdelay = 0.0;
+  double ydelay = 0.0;
+  double *in1;
+  double *in2;
+  double *in3;
+  double *in4;
+  double top1 = 0;
+  double top2 = 0;
+  double a1=0, a1s=0, a2=0, a2s=0, b1=0, b1s=0, b2=0, b2s=0;
+  double val = 180.0 / M_PI;
+  double x = 0.0,y=0.0;
+  double ret=0.0;
+
+  for (j = 0; j < N; j++) {
+    if ((i + j) < wav->totalSamples) {
+      in1[j] = wav->chan1[i +j];
+      in2[j] = wav->chan2[i+j];
+      in3[j] = wav->chan3[i+j];
+      in4[j] = wav->chan4[i+j];
+    }
+  }
+  xdelay = getTimeDomainCC(in1,in3,N);
+  ydelay = getTimeDomainCC(in2,in4,N);
+
+  a1 = (xdelay * 340.) / 2;
+  a2 = (ydelay * 340.) / 2;
+
+  a1s = (a1)*(a1);
+  a2s = (a2)*(a2);
+  printf("\nx degree: %f\n", asin(a1*2)*val);
+  printf("y degree: %f\n", asin(a2*2)*val);
+
+  b1s = (fabs((1./4) - (a1s)));
+  b2s = (fabs((1./4) - (a2s)));
+
+  double bottom = ((b1s * b2s)-(a1s*a2s));
+  top1 = fabs((b1s + a2s)*(a1s * b2s));
+//    printf("b2s + a2s:%f a2s * b2s:%f\n", b1s +a2s, a1s*b2s);
+  top2 = fabs((b2s + a1s)*(b1s * a2s));
+  x = sqrtf(top1 / bottom);
+  y = sqrtf(top2 / bottom);
+//  printf("top1:%f top2:%f\n", top1, top2);
+//  printf("bottom:%f\n", bottom);
+
+  if (xdelay < 0)
+    x = x*-1.;
+  if (ydelay < 0)
+    y = y*-1.;
+
+  ret = atan2(y,x) * val;
+  printf("\nSample: %d\n", i);
+  //printf("delay (x,y): %f %f\n", xdelay, ydelay);
+  //printf("(x,y):       %f %f\n", x, y);
+  //printf("weight (x,y):%f %f\n", max13, max24);
+  //printf("a1: %f a2: %f\n", a1, a2);
+  //printf("a1s: %f a2s:%f\n", a1s, a2s);
+  //printf("b1: %f b2: %f\n", b1, b2);
+  //printf("b1s: %f b2s:%f\n", b1s, b2s);
+  //printf("x: %f y:%f\n", x, y);
+
+  printf("\nSound is at %f degrees\n", ret);
+  printf("Sound is at %f degrees\n", atan(y/x)*val);
+
+  printf("\nSound is at %f degrees\n", ret-45);
+  printf("Sound is at %f degrees\n", atan(y/x)*val-45);
+
+  return 0;
+}
+
+
+
+int writeFFT(int N, int startRead, struct WaveHeader *wav)
+{
+  double *in1;
+  double *in2;
+  double *in3;
+  double *in4;
+  int channel = 0;
+  int i, j;
+  double max1 = 0.0;
+  double max2 = 0.0;
+  double max3 = 0.0;
+  double max4 = 0.0;
+  double totalmax1 = 0.0;
+  double totalmax2 = 0.0;
+  double totalmax3 = 0.0;
+  double totalmax4 = 0.0;
+
+
+  double mag1 = 0.0;
+  double mag2 = 0.0;
+  double mag3 = 0.0;
+  double mag4 = 0.0;
+  double freqBin = 0.0;
+  double correction = 0.0;
+  fftw_complex * out1;
+  fftw_complex * out2;
+  fftw_complex * out3;
+  fftw_complex * out4;
+  fftw_plan my_plan1;
+  fftw_plan my_plan2;
+  fftw_plan my_plan3;
+  fftw_plan my_plan4;
+  FILE * fDatOut1;
+  FILE * fDatOut2;
+  FILE * fDatOut3;
+  FILE * fDatOut4;
+
+  int nameLength = 0;
+
+  char datFilename1[300];
+  char datFilename2[300];
+  char datFilename3[300];
+  char datFilename4[300];
+
+  //add ".dat" to the end of the file
+  //will fix later to rename ".wav"
+  nameLength = sizeof(wav->wavName) / sizeof(wav->wavName[0]);
+  snprintf(datFilename1, nameLength + 4, "1%s.dat", wav->wavName);
+  fDatOut1 = fopen(datFilename1, "w");
+
+  snprintf(datFilename2, nameLength + 4, "2%s.dat", wav->wavName);
+  fDatOut2 = fopen(datFilename2, "w");
+
+  snprintf(datFilename3, nameLength + 4, "3%s.dat", wav->wavName);
+  fDatOut3 = fopen(datFilename3, "w");
+
+  snprintf(datFilename4, nameLength + 4, "4%s.dat", wav->wavName);
+  fDatOut4 = fopen(datFilename4, "w");
+
+  correction = (double)wav->sampleRate / (double)N;
+
+//This could be more optimized
+// by making the FFT portion its seperate function and passing in the wav channel
+// it would save memory by not needing 4 different plans to execute
+  in1 = (double*)fftw_malloc(sizeof(double) * N);
+  out1 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * ((N / 2) + 1));
+  my_plan1 = fftw_plan_dft_r2c_1d(N, in1, out1, FFTW_MEASURE);
+
+  in2 = (double*)fftw_malloc(sizeof(double) * N);
+  out2 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * ((N / 2) + 1));
+  my_plan2 = fftw_plan_dft_r2c_1d(N, in2, out2, FFTW_MEASURE);
+
+  in3 = (double*)fftw_malloc(sizeof(double) * N);
+  out3 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * ((N / 2) + 1));
+  my_plan3 = fftw_plan_dft_r2c_1d(N, in3, out3, FFTW_MEASURE);
+
+  in4 = (double*)fftw_malloc(sizeof(double) * N);
+  out4 = (fftw_complex*)fftw_malloc(sizeof(fftw_complex) * ((N / 2) + 1));
+  my_plan4 = fftw_plan_dft_r2c_1d(N, in4, out4, FFTW_MEASURE);
+
+//  printf("Calcuting FFT, placing dat file at \'%s\'\n", datFilename1);
+
+
+
+  //Iterate through the entire wav file, overlap & add by buffer size
+  for (i = startRead; i < wav->totalSamples; i = i + (N - N / 2)) {
+    for (j = 0; j < N; j++) {
+      if ((i + j) < wav->totalSamples) {
+        in1[j] = wav->chan1[i +j]*(0.54 - 0.46 * cos(2 * M_PI * j / BUFFERSIZE));
+        in2[j] = wav->chan2[i+j]*(0.54 - 0.46 * cos(2 * M_PI * j / BUFFERSIZE));
+        in3[j] = wav->chan3[i+j]*(0.54 - 0.46 * cos(2 * M_PI * j / BUFFERSIZE));
+        in4[j] = wav->chan4[i+j]*(0.54 - 0.46 * cos(2 * M_PI * j / BUFFERSIZE));
+      }
+    }
+
+
+    //Perform FFT for the sample size
+    fftw_execute(my_plan1);
+    fftw_execute(my_plan2);
+    fftw_execute(my_plan3);
+    fftw_execute(my_plan4);
+    max1 = 0;
+    max2 = 0;
+    max3 = 0;
+    max4 = 0;
     //Iterate through sample size
     //skip the first element, since it is the average of the sample
     for (j = 1; j<(N/2)+1; j++) {
-      mag = 2*(out[j][0]*out[j][0] + out[j][1]*out[j][1])/N;
+      mag1 = sqrtf(2*(out1[j][0]*out1[j][0] + out1[j][1]*out1[j][1])/N);
+      mag2 = sqrtf(2*(out2[j][0]*out2[j][0] + out2[j][1]*out2[j][1])/N);
+      mag3 = sqrtf(2*(out3[j][0]*out3[j][0] + out3[j][1]*out3[j][1])/N);
+      mag4 = sqrtf(2*(out4[j][0]*out4[j][0] + out4[j][1]*out4[j][1])/N);
+      if (mag1 > max1) max1 = mag1;
+      if (mag1 > totalmax1) totalmax1 = mag1;
+
+      if (mag2 > max2) max2 = mag2;
+      if (mag2 > totalmax2) totalmax2 = mag2;
+
+      if (mag3 > max3) max3 = mag3;
+      if (mag3 > totalmax3) totalmax3 = mag3;
+
+      if (mag4 > max4) max4 = mag4;
+      if (mag4 > totalmax4) totalmax4 = mag4;
 
       //Set the frequency bin
       freqBin = (double)(j) * correction;
 
       //Print out (sample FreqBin dB (unscaled))
       //This can be used with gnuplot or matlab to generate spectrogram
-      fprintf(fDatOut,"%d %f %f  \n",i,freqBin,(10. * log10(mag+0.001))/log10(10));
+      fprintf(fDatOut1,"%d %f %f %f %f \n",i,freqBin,mag1, max1, totalmax1);
+      fprintf(fDatOut2,"%d %f %f %f %f \n",i,freqBin,mag2, max2, totalmax2);
+      fprintf(fDatOut3,"%d %f %f %f %f \n",i,freqBin,mag3, max3, totalmax3);
+      fprintf(fDatOut4,"%d %f %f %f %f \n",i,freqBin,mag4, max4, totalmax4);
     }
     //gnuplot requires a line break between sample sets for spectrograms
-    fprintf(fDatOut,"\n");
+    fprintf(fDatOut1,"\n");
+    fprintf(fDatOut2,"\n");
+    fprintf(fDatOut3,"\n");
+    fprintf(fDatOut4,"\n");
   }
-  fftw_free(in);
-  fftw_free(out);
-  fftw_destroy_plan(my_plan);
+
+  fftw_free(in1);
+  fftw_free(out1);
+  fftw_destroy_plan(my_plan1);
+
+  fftw_free(in2);
+  fftw_free(out2);
+  fftw_destroy_plan(my_plan2);
+
+  fftw_free(in3);
+  fftw_free(out3);
+  fftw_destroy_plan(my_plan3);
+
+  fftw_free(in4);
+  fftw_free(out4);
+  fftw_destroy_plan(my_plan4);
+
   fftw_cleanup();
-  fclose(fDatOut);
+//  fclose(fDatOut1);
+//  fclose(fDatOut2);
+//  fclose(fDatOut3);
+//  fclose(fDatOut4);
+
   //write gnuplot script
-  printf("Writing spec.gp\n");
-  writeGpScript(datFilename,wav->sampleRate, N);
+//  printf("Writing spec.gp\n");
+  writeGpScript(datFilename1, wav->sampleRate, i);
 
   return 0;
 }
 
 
-int writeGpScript(char *datName, int rate,int N){
+int writeGpScript(char *datName, int rate, int N) {
+  int i = rate/2;
   FILE *gnuplotFile = fopen("spec.gp", "w");
-
-  fprintf(gnuplotFile,"########\n");
-  fprintf(gnuplotFile,"DATFILE = \"%s\"\n",datName);
-  fprintf(gnuplotFile,"set yrange[0:%d] #top frequency to show\n",rate/2);
-  fprintf(gnuplotFile,"#set xrange[0:]  #number of seconds to display\n");
-  fprintf(gnuplotFile,"########\n");
-  fprintf(gnuplotFile,"set terminal png enhanced size 800,600\n");
-  fprintf(gnuplotFile,"set view 0,0\n");
- // fprintf(gnuplotFile, "set contour base\n");
-  fprintf(gnuplotFile,"set lmargin at screen 0.15\n");
-  fprintf(gnuplotFile,"set rmargin at screen 0.85\n");
-  fprintf(gnuplotFile,"set bmargin at screen 0.15\n");
-  fprintf(gnuplotFile,"set tmargin at screen 0.85\n");
-  fprintf(gnuplotFile,"set title DATFILE\n");
-  fprintf(gnuplotFile,"set output DATFILE[:strlen(DATFILE)-4].\'.png\'\n");
-  fprintf(gnuplotFile,"set ytics rotate\n");
-  fprintf(gnuplotFile,"set xlabel \"Time (s)\" offset character 0, 2,0\n");
-  fprintf(gnuplotFile,"###\n");
-  fprintf(gnuplotFile,"###I couldn't get the label to show =(\n");
-  fprintf(gnuplotFile,"###set label 2 \"Frequency (Hz)\"\n");
-  fprintf(gnuplotFile,"###\n");
-  fprintf(gnuplotFile,"show label\n");
-  fprintf(gnuplotFile,"set ytics border mirror\n");
-  fprintf(gnuplotFile,"unset ztics\n");
-  fprintf(gnuplotFile,"set grid			#Put gridlines on the plot\n");
+/*
+  fprintf(gnuplotFile, "########\n");
+  fprintf(gnuplotFile, "DATFILE = \"%s\"\n", datName);
+  fprintf(gnuplotFile, "set yrange[0:%d] #top frequency to show\n", rate / 2);
+  fprintf(gnuplotFile, "#set xrange[0:]  #number of seconds to display\n");
+  fprintf(gnuplotFile, "########\n");
+  fprintf(gnuplotFile, "set terminal png enhanced size 800,600\n");
+  fprintf(gnuplotFile, "set view 0,0\n");
+  // fprintf(gnuplotFile, "set contour base\n");
+  fprintf(gnuplotFile, "set lmargin at screen 0.15\n");
+  fprintf(gnuplotFile, "set rmargin at screen 0.85\n");
+  fprintf(gnuplotFile, "set bmargin at screen 0.15\n");
+  fprintf(gnuplotFile, "set tmargin at screen 0.85\n");
+  fprintf(gnuplotFile, "set title DATFILE\n");
+  fprintf(gnuplotFile, "set output DATFILE[:strlen(DATFILE)-4].\'.png\'\n");
+  fprintf(gnuplotFile, "set ytics rotate\n");
+  fprintf(gnuplotFile, "set xlabel \"Time (s)\" offset character 0, 2,0\n");
+  fprintf(gnuplotFile, "###\n");
+  fprintf(gnuplotFile, "###I couldn't get the label to show =(\n");
+  fprintf(gnuplotFile, "###set label 2 \"Frequency (Hz)\"\n");
+  fprintf(gnuplotFile, "###\n");
+  fprintf(gnuplotFile, "show label\n");
+  fprintf(gnuplotFile, "set ytics border mirror\n");
+  fprintf(gnuplotFile, "unset ztics\n");
+  fprintf(gnuplotFile, "set grid      #Put gridlines on the plot\n");
   //fprintf(gnuplotFile,"set format cb \"\%10.1\f\"\n");
-  fprintf(gnuplotFile,"\n");
-  fprintf(gnuplotFile,"set cbtics border in scale 0,0 autojustify mirror offset -8,0\n");
-  fprintf(gnuplotFile,"set colorbox user\n");
-  fprintf(gnuplotFile,"\n");
-  fprintf(gnuplotFile,"set colorbox vertical user origin 0.1, 0.29 size 0.01,0.45\n");
-  fprintf(gnuplotFile,"#set logscale y 2\n");
-  fprintf(gnuplotFile,"color(x) = x    #this just scales down the colorbox numbers\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "set cbtics border in scale 0,0 autojustify mirror offset -8,0\n");
+  fprintf(gnuplotFile, "set colorbox user\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "set colorbox vertical user origin 0.1, 0.29 size 0.01,0.45\n");
+  fprintf(gnuplotFile, "#set logscale y 2\n");
+  fprintf(gnuplotFile, "color(x) = x    #this just scales down the colorbox numbers\n");
   //fprintf(gnuplotFile,"#set yrange[500:2000]\n");
-  fprintf(gnuplotFile,"\n");
-  fprintf(gnuplotFile,"splot DATFILE using ($1/%d):2:(color($3)) with pm3d notitle\n",rate);
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "splot DATFILE using ($1/%d):2:(color($3)) with pm3d notitle\n", rate);
   fclose(gnuplotFile);
+  */
+
+  fprintf(gnuplotFile, "#!/usr/bin/gnuplot\n");
+  fprintf(gnuplotFile, "########\n");
+  fprintf(gnuplotFile, "DATFILE = \"%s\"[2:strlen(\"%s\")]\n",datName,datName);
+  fprintf(gnuplotFile, "set yrange[300:%d] #top frequency to show\n",rate/2);
+  fprintf(gnuplotFile, "set xrange[0:%d]  #number of seconds to display\n", rate/N);
+  fprintf(gnuplotFile, "########\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "set terminal png enhanced size 800,600\n");
+  fprintf(gnuplotFile, "set output DATFILE[1:strlen(DATFILE)-4].'.png'\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "#Setup Plot Area\n");
+  fprintf(gnuplotFile, "set multiplot layout 5,1\n");
+  fprintf(gnuplotFile, "set grid front\n");
+  fprintf(gnuplotFile, "unset grid\n");
+  fprintf(gnuplotFile, "unset ztics\n");
+  fprintf(gnuplotFile, "set ytics out mirror\n");
+  fprintf(gnuplotFile, "set ytics (%d",i/=2);
+  while (i > 250) {
+    fprintf(gnuplotFile, ",%d", i /= 2);
+  }
+
+  fprintf(gnuplotFile, ")\n");
+  fprintf(gnuplotFile, "set view 0,0  #top down view for spectrogram\n");
+  fprintf(gnuplotFile, "TOP = 0.98\n");
+  fprintf(gnuplotFile, "DY = 0.22\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "#Setup Labels\n");
+  fprintf(gnuplotFile, "set label 1 at screen 0.87,0.63 \"Frequency (Hz)\" rotate by 270 front\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "set xtics axis nomirror\n");
+  fprintf(gnuplotFile, "set format y \"\%%g\"\n");
+  fprintf(gnuplotFile, "set log y\n");
+  fprintf(gnuplotFile, "set colorbox user\n");
+  fprintf(gnuplotFile, "unset cbtics\n");
+  fprintf(gnuplotFile, "set colorbox vertical user size 0.01,0.4 origin 0.18,0.35\n");
+  fprintf(gnuplotFile, "color(x) = x*2    #this just scales down the colorbox numbers\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "set label 2 at screen 0.22,0.18 \"Mic 1\" rotate by 90 front\n");
+  fprintf(gnuplotFile, "set label 3 at screen 0.22,0.4  \"Mic 2\" rotate by 90 front\n");
+  fprintf(gnuplotFile, "set label 4 at screen 0.22,0.61 \"Mic 3\" rotate by 90 front\n");
+  fprintf(gnuplotFile, "set label 5 at screen 0.22,0.84 \"Mic 4\" rotate by 90 front\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "set xlabel \"Time (s)\" offset 0,-7\n");
+  fprintf(gnuplotFile, "set tmargin at screen TOP-3*DY\n");
+  fprintf(gnuplotFile, "set bmargin at screen TOP-4*DY\n");
+  fprintf(gnuplotFile, "\n");
+  fprintf(gnuplotFile, "splot \"1\".DATFILE using ($1/%d):2:(color($3)) with pm3d notitle\n", rate);
+  fprintf(gnuplotFile, "unset xtics\n");
+  fprintf(gnuplotFile, "set tmargin at screen TOP-2*DY\n");
+  fprintf(gnuplotFile, "set bmargin at screen TOP-3*DY\n");
+  fprintf(gnuplotFile, "splot \"2\".DATFILE using ($1/%d):2:(color($3)) with pm3d notitle\n", rate);
+  fprintf(gnuplotFile, "unset xlabel\n");
+  fprintf(gnuplotFile, "set tmargin at screen TOP-DY\n");
+  fprintf(gnuplotFile, "set bmargin at screen TOP-2*DY\n");
+  fprintf(gnuplotFile, "splot \"3\".DATFILE using ($1/%d):2:(color($3)) with pm3d notitle\n", rate);
+  fprintf(gnuplotFile, "set tmargin at screen TOP\n");
+  fprintf(gnuplotFile, "set bmargin at screen TOP-DY\n");
+  fprintf(gnuplotFile, "splot \"4\".DATFILE using ($1/%d):2:(color($3)) with pm3d notitle\n", rate);
+  fprintf(gnuplotFile, "unset multiplot\n");
   return 0;
 }
-
-/*
-char *GetFileName(const char *path)
-{
-    char *filename = strrchr(path, '\\');
-    if (filename == NULL)
-        filename = path;
-    else
-        filename++;
-    return filename;
-}
-*/
