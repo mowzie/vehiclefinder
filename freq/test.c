@@ -10,11 +10,8 @@ void showUsage();
 int writeGpScript(char *datName, int rate, int);
 int writeFFT(int N, int,struct WaveHeader *wav);
 float getTimeDomainCC(double* sigA, double* sigB, int N);
-int AutoCorrelate(int, int numSamples, double *sample);
-
-
-
-
+float getTimeDomainAC(double* sig, int N, int init);
+int sirenDetect(double* X, int N);
 //-----------------------------------------------------------------------------
 //   Function:    main()
 //
@@ -63,12 +60,17 @@ int main(int argc, char *argv[])
   char fileName[300];
   struct WaveHeader *wav;
   FILE *fWavIn = NULL;
-  FILE *fOut = NULL;
+  //FILE *fOut = NULL;
   double foo [BUFFERSIZE];
-  short int *fnew;
-  double *ftest;
+
+  double test[512];
+  //short int *fnew;
+  //double *ftest;
   int min = 10000;
   int max = 0;
+  int detect;
+  int counter = 0;
+  double buff[3];
   //ToDO:  better error handling
 
   if (argc < 3) {
@@ -122,14 +124,14 @@ int main(int argc, char *argv[])
       continue;
     }
   }
-fOut = fopen("new.wav", "wb");
+
   //it's a little hacky, but this checks if we have a file
   if (fWavIn == NULL) {
     showUsage();
     return 1;
   }
 
-  //return 0;
+
   wav = malloc(sizeof(struct WaveHeader));
 
   strncpy(wav->wavName, fileName, 300);
@@ -141,8 +143,8 @@ fOut = fopen("new.wav", "wb");
     printHeader(wav);
   }
   readAllData(fWavIn, wav);
-  fnew = malloc(wav->totalSamples  * sizeof(short int));
-  ftest = malloc(BUFFERSIZE * 2*sizeof(short int));
+  //fnew = malloc(wav->totalSamples  * sizeof(short int));
+  //ftest = malloc(BUFFERSIZE * 2*sizeof(short int));
   //writeFFT(N, 102186, wav);
   //process the data
   start = clock();
@@ -150,30 +152,42 @@ fOut = fopen("new.wav", "wb");
 
   if (siren) {
     for (i = 0; i < wav->totalSamples; i += (BUFFERSIZE - (BUFFERSIZE / 2))) {
+
+    //for (i = 0; i < wav->totalSamples; i += (BUFFERSIZE)) {
       for (j = 0; j < BUFFERSIZE; j++) {
         if ((i + j) < wav->totalSamples) {
-          foo[j] = wav->chan2[i + j]*(0.54 - 0.46 * cos(2 * M_PI * i / BUFFERSIZE));
+          foo[j] = wav->chan1[i + j]*(0.54 - 0.46 * cos(2 * M_PI * i / BUFFERSIZE));
+          //foo[j] = wav->chan1[i + j];
         }
       }
 
       //Processes with Goertzel algorithm
+//printf("%d %f\n", i, getTimeDomainCC(foo,foo,BUFFERSIZE));
 
-      ftest[point] = AutoCorrelate(i, BUFFERSIZE, foo);
-      point++;
-      if (point > BUFFERSIZE /2) {
-        point = 0;
-        for (j =0; j < BUFFERSIZE/2; j++)
-        {
-          if (ftest[j] > max) max = ftest[j];
-          if (ftest[j] < min) min = ftest[j];
-        //  printf("max: %d  min: %d\n", max, min);
-        }
-      //  printf("%d %d\n", i,AutoCorrelate(i, BUFFERSIZE / 2, ftest));
-max = 0;
-min = 1000;
+if (i > 5)
+{
+  //printf ("\n%d\n", i);
+     test[counter] = 44100.0 / getTimeDomainAC(foo, BUFFERSIZE, 20);
+
+     counter++;
+     if (counter == 64) {
+      // printf("%d\n", i);
+    //   for (j = 0; j < 64; j++) {
+      //   printf("%d %f\n", j, test[j]);
+    //   }
+    //  return 0;
+       if (detect = sirenDetect(test, 64)) {
+         printf("siren detected, running direction\n");
+        CalculateDirection(BUFFERSIZE, i + detect, wav);
+        //return 0;
       }
+      // return 0;
+       counter = 0;
+       }
+    //if (i > 383747)
+    //  return 0;
 
-      continue;
+    continue;
       if (processData(wav->sampleRate, i, foo)) {
         //sirenTime = clock()-start;
   //     printf("\nsiren detection time: %f\n", (float)(sirenTime / CLOCKS_PER_SEC));
@@ -183,8 +197,10 @@ min = 1000;
     //      printf("\ndirection detection time: %ld\n", directionTime / CLOCKS_PER_SEC);
         }      //break;
       }
+      }
     }
   }
+
 if (spec == 1) {
   writeFFT(N, 0, wav);
 }
@@ -208,84 +224,10 @@ if (spec == 1) {
   freeChannelMemory(wav);
   free(wav);
   fclose(fWavIn);
-
+//free(ftest);
+//free(fnew);
   return 0;
 }
-
-int AutoCorrelate(int foo, int N, double *sample) {
-  int i = 0;
-  int j = 0;
-  float result = 0.0;
-  int pd_state = 0;
-  float freq = 0.0;
-  int thresh = 0;
-  int minLoc = 0;
-  int maxLoc = 0;
-  float result_old;
-  float period;
-  double min = 20000;
-  double max = 0;
-  static int downCount = 0;
-  static int upCount = 0;
-  static int counter = 0;
-  int signChange = 0;
-
-
-  for(i=1; i < N; i++) {
-    result_old = result;
-    result = 0;
-    for(j=0; j < N-i; j++)
-      result += (sample[j])*(sample[i+j]);
-    result /= (2*N+1);
-
-    if (result < min) {min = result;minLoc = i;}
-    if (result > max) {max = result;maxLoc = i;}
-
-    if (pd_state == 2 && (result-result_old) <=0) {
-      if (result < 5*(max-min)) {
-      period = i;
-      pd_state = 3;
-    }
-    signChange++;
-    }
-
-
-
-    if (pd_state == 1 && (result > thresh) && (result-result_old) > 0) {
-      pd_state = 2;
-      signChange++;
-    }
-    if (pd_state==0) {
-      thresh = result * 0.5;
-
-
-      pd_state = 1;
-    }
-  }
-
-  if ((int)(44100/period - 44100/minLoc) >75) {
-    printf("max-min: %d\n", (44100/(int)period - 44100/minLoc));
-    printf("loc: %d\n", abs(minLoc-period));
-    if ((abs(minLoc - period) > 25) && (abs(minLoc - period) < 44))
-    if (signChange == 2)
-      printf("%d *****yelp!\n", foo);
-}
-
-
-
-
-  //printf("%d\n", signChange);
-
-  freq = 44100/(period);
-
-
-  //printf("%d %f\n", foo,freq);
-  return (int) freq;
-}
-
-
-
-
 
 //-----------------------------------------------------------------------------
 //   Function:    showUsage()
@@ -320,6 +262,151 @@ void showUsage() {
   printf("\n");
 }
 
+int sirenDetect(double* X, int N) {
+  int state = 0;
+  int i;
+  int t = 0;
+  double m,mAB;
+  double s = 0;
+  double max = X[0];
+  int max_t = 0;
+  int min_t = 0;
+  double min = X[0];
+  double denom = 0;
+  double rdelay = 0;
+  double maxDelay = 65;
+  double tDelta = 0;
+  double previous = 0;
+  double current = 0;
+  int difference = 0;
+    int stateChange = 0;
+    int detect = 0;
+    int wail = 0;
+    double peakL = 0;
+    double peakH = 0;
+
+  for (i = 1; i < N; i++) {
+    previous = X[i-1];
+    current = X[i];
+    if (current > max) {
+      max = current;
+      max_t = i;
+    }
+    if (X[i] < min) {
+      min = current;
+      min_t = i;
+    }
+
+  //Check state for a yelping signal
+    if (state == 0) {
+      if (current < previous) {
+        state = -1;
+      }
+      else if (current > previous) {
+          state = 1;
+        }
+    }
+    else if ((state == 1) && (previous > 1400)){
+      if (current < previous)
+      {
+        state = -1;
+        peakH = previous;
+        max_t = i-1;
+        stateChange++;
+      }
+    }
+    else if ((state == -1) && (previous < 850)){
+      if (current > previous) {
+        state = 1;
+        peakL = previous;
+        min_t = i -1;
+        stateChange++;
+      }
+    }
+
+    if ((abs(peakH-peakL) > 600) && (abs(peakH-peakL)<800)) {
+      if ((abs(max_t - min_t) > 5) && (abs(max_t - min_t) < 7)){
+        if (stateChange > 4) {
+        //  printf("********siren*********\n");
+          //for (t = 0; t < i; t++) {
+            //printf("%d %f\n", t, X[t]);
+          //}
+            return i;
+        }
+      }
+    }
+  }
+  difference = floor(abs(max - min));
+//  printf("%d %d %d\n",difference, N, difference / N);
+  if ((difference > 40) && (difference < 130)) {
+    if (floor((difference / N) <= 2) || (difference / N == 9))
+      return 1;
+  }
+
+return 0;
+}
+
+
+
+
+float getTimeDomainAC(double* X, int N, int init) {
+  static double previous = 0.0;
+  int state = 0;
+  int i;
+  int t = 0;
+  double m,mAB;
+  double s = 0.0;
+  double max = 0.0;
+  double denom = 0.0;
+  double rdelay = 0.0;
+  double maxDelay = 65;
+  double tDelta = 0.0;
+  double rdelay_previous = 0.0;
+
+
+  for (i = 0; i < N; i++) {
+    m += X[i];
+  }
+  m /= N;
+
+  for (i = 0; i < N-1; i++) {
+    s += ((X[i] - m));
+  }
+  denom = s*s;
+
+  for (t = init; (t < maxDelay) && (state != 2); t++) {
+    mAB = 0;
+    for (i = 0; i < N-1; i++) {
+      rdelay_previous = rdelay;
+      if ((i + t) < 0 || (i + t) >= N)
+        continue;
+      else {
+        mAB += (X[i] - m) * (X[i + (int)t] - m);
+      }
+    }
+    rdelay = mAB / denom;
+    if ((state == 0) && (rdelay > 0) && (rdelay > rdelay_previous)) {
+      state = 1;
+    }
+    else if ((state ==1) && (rdelay < rdelay_previous)) {
+      state = 0;
+      if (rdelay > max) {
+        max = rdelay;
+        tDelta = t -1;
+      }
+    }
+  //  printf("%f %f\n", 44100.0/t, rdelay);
+  }
+//  printf("\n");
+  if (tDelta == init) tDelta = previous;
+  previous = tDelta;
+
+  return tDelta;
+}
+
+
+
+
 float getTimeDomainCC(double* sigA, double* sigB, int N) {
   double mA, mB,mAB,sA,sB;
   double max = 0;
@@ -347,8 +434,7 @@ float getTimeDomainCC(double* sigA, double* sigB, int N) {
   mB /= N;
   sA = 0;
   sB = 0;
-
-  for (j = 0; j < N; j++) {
+for (j = 0; j < N; j++) {
     sA += (sigA[j] - mA) * (sigA[j] - mA);
     sB += (sigB[j] - mB) * (sigB[j] - mB);
   }
@@ -367,25 +453,25 @@ float getTimeDomainCC(double* sigA, double* sigB, int N) {
     }
 
     rdelay = mAB / denom;
-    fprintf(xbarFile, "%f %f\n",delay, fabs(rdelay));
+    fprintf(xbarFile, "%f %f\n",delay, rdelay);
 
-    if (fabs(rdelay) > fabs(max)) {
+    if ((rdelay) > (max)) {
       max = rdelay;
-      tDelta = delay / 44100;
+      tDelta = delay;
     }
   }
   fclose(xbarFile);
-  return tDelta;
+  return tDelta / 44100.0;
 }
 
 int CalculateDirection(int N, int i, struct WaveHeader *wav) {
   int j;
   double xdelay = 0.0;
   double ydelay = 0.0;
-  double *in1;
-  double *in2;
-  double *in3;
-  double *in4;
+  double in1[N];
+  double in2[N];
+  double in3[N];
+  double in4[N];
   double top1 = 0;
   double top2 = 0;
   double a1=0, a1s=0, a2=0, a2s=0, b1=0, b1s=0, b2=0, b2s=0;
@@ -401,8 +487,11 @@ int CalculateDirection(int N, int i, struct WaveHeader *wav) {
       in4[j] = wav->chan4[i+j];
     }
   }
-  xdelay = getTimeDomainCC(in1,in3,N);
+  //xdelay = getTimeDomainCC(in1,in3,N);
   ydelay = getTimeDomainCC(in2,in4,N);
+
+printf("xdelay: %f\n", xdelay);
+printf("ydelay: %f\n", ydelay);
 
   a1 = (xdelay * 340.) / 2;
   a2 = (ydelay * 340.) / 2;
