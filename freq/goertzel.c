@@ -1,21 +1,8 @@
 #include <math.h>
 #include <stdio.h>
-#define BUFFERSIZE 512
+#include "goertzel.h"
 
-#define WAILHI   1600
-#define PIERCEHI 1640
-#define YELPHI   1110
-#define WAILLOW  800     //can these two be combined?
-#define PIERCELOW 780  //
-#define YELPLOW   1250 //500
-
-//#define YELPLOW 610 //police.wav
-
-
-float goertzel(int TARGET_FREQUENCY,int SAMPLING_RATE, short int* data);
-int processData(int, int, short int* chan1);
-
-float goertzel(int TARGET_FREQUENCY,int SAMPLING_RATE, short int* data)
+float goertzel(int TARGET_FREQUENCY,int SAMPLING_RATE, double* data)
 {
   int   k,i;
   float floatnumSamples;
@@ -53,18 +40,11 @@ float goertzel(int TARGET_FREQUENCY,int SAMPLING_RATE, short int* data)
 }
 
 
-int processData(int freq, int sample, short int *foo) {
-  //int test = 0;
+int processData(int freq, int sample, double *foo) {
 
-  //static int i = 0;
- // int j = 0;
-  float first = 0.0;
-  float second = 0.0;
+
   float power = 0.0;
-  //int count = 0;
- // int last = 0;
- // int wail = 0;
- // int wailC = 0;
+
  static int wailC = 0;
  static int lastWail = 0;
   static int pierceC = 0;
@@ -72,13 +52,6 @@ int processData(int freq, int sample, short int *foo) {
   static int lastPierce = 0;
   static int lastYelp = 0;
 
-  int hilo = 0;
-  //int hiloC = 0;
-  //short int foo [BUFFERSIZE];
-
-//   printf("%d clap %f \n", sample, power);
-
-//  power = goertzel(YELPLOW,freq, foo);
 
 /*
 printf("%d 500 %f \n", sample, goertzel(500,freq, foo));
@@ -184,7 +157,7 @@ printf("%d 595 %f \n", sample, goertzel(595,freq, foo));
     printf("%d 980 %f \n", sample, goertzel(980,freq, foo));
     printf("%d 985 %f \n", sample, goertzel(985,freq, foo));
     printf("%d 990 %f \n", sample, goertzel(990,freq, foo));
-
+*/
     /*
     printf("%d 995 %f \n", sample, goertzel(995,freq, foo));
     printf("%d 1000 %f \n", sample, goertzel(1000,freq, foo));
@@ -276,7 +249,6 @@ printf("%d 1785 %f \n", sample, goertzel(1785,freq, foo));
 printf("%d 1790 %f \n", sample, goertzel(1790,freq, foo));
 printf("%d 1795 %f \n", sample, goertzel(1795,freq, foo));
 printf("%d 1800 %f \n", sample, goertzel(1800,freq, foo));
-/*
 */
 
 
@@ -329,7 +301,6 @@ printf("%d 1800 %f \n", sample, goertzel(1800,freq, foo));
 
 
 power = goertzel(WAILLOW,freq, foo);
-first = power;
 if (power > 1050) {
   if ((sample - lastWail) > 60000) {
     wailC++;
@@ -339,7 +310,6 @@ if (power > 1050) {
 
 }
 power = goertzel(WAILHI,freq, foo);
-second = power;
 if (power > 6000) {
   if ((sample-lastWail) > 80000) {
     wailC++;
@@ -358,7 +328,6 @@ if (wailC >1500) {
 
 //////////////////////////////////////
 power = goertzel(YELPLOW,freq, foo);
-first = power;
 if (power > 1200) {
   printf("%d \t %f", sample, power);
   if ((sample - lastYelp) > 6000) {
@@ -370,7 +339,6 @@ if (power > 1200) {
   printf("%d \t 0", sample);
 }
 power = goertzel(YELPHI,freq, foo);
-second = power;
 if (power > 1200) {
   //printf("%d\thi\t%f\t%d yelp\n", sample,power,yelpC);
   printf("\t %f \n", power);
