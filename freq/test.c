@@ -154,8 +154,9 @@ int main(int argc, char *argv[])
         //  }
         //  return 0;
           if (detect = sirenDetect(test, 64)) {
-            printf("siren detected, running direction\n");
-            CalculateDirection(BUFFERSIZE, i + detect, wav);
+            printf("siren detected at sample: %d\n", i);
+              //printf("siren detected, running direction\n");
+            //CalculateDirection(BUFFERSIZE, i + detect, wav);
             //return 0;
           }
           counter = 0;
@@ -280,6 +281,7 @@ int sirenDetect(double* X, int N) {
         //  for (t = 0; t < i; t++) {
         //    printf("%d %f\n", t, X[t]);
         //  }
+        printf("yelp\n");
           return i;
         }
       }
@@ -287,8 +289,10 @@ int sirenDetect(double* X, int N) {
   }
   difference = floor(abs(max - min));
   if ((difference > 40) && (difference < 130)) {
-    if (floor((difference / N) <= 2) || (difference / N == 9))
-      return 1;
+    if (floor((difference / N) <= 2) || (difference / N == 9)) {
+     printf("wail\n");
+        return 1;
+    }
   }
 return 0;
 }
@@ -373,16 +377,6 @@ int writeFFT(int N, int startRead, struct WaveHeader *wav) {
   double *in3;
   double *in4;
   int i, j;
-  double max1 = 0.0;
-  double max2 = 0.0;
-  double max3 = 0.0;
-  double max4 = 0.0;
-  double totalmax1 = 0.0;
-  double totalmax2 = 0.0;
-  double totalmax3 = 0.0;
-  double totalmax4 = 0.0;
-
-
   double mag1 = 0.0;
   double mag2 = 0.0;
   double mag3 = 0.0;
@@ -397,32 +391,17 @@ int writeFFT(int N, int startRead, struct WaveHeader *wav) {
   fftw_plan my_plan2;
   fftw_plan my_plan3;
   fftw_plan my_plan4;
-  FILE * fDatOut1;
-  FILE * fDatOut2;
-  FILE * fDatOut3;
-  FILE * fDatOut4;
+  FILE * fDatOut;
 
   int nameLength = 0;
 
-  char datFilename1[300];
-  char datFilename2[300];
-  char datFilename3[300];
-  char datFilename4[300];
+  char datFilename[300];
 
   //add ".dat" to the end of the file
   //will fix later to rename ".wav"
   nameLength = sizeof(wav->wavName) / sizeof(wav->wavName[0]);
-  snprintf(datFilename1, nameLength + 4, "1%s.dat", wav->wavName);
-  fDatOut1 = fopen(datFilename1, "w");
-
-  snprintf(datFilename2, nameLength + 4, "2%s.dat", wav->wavName);
-  fDatOut2 = fopen(datFilename2, "w");
-
-  snprintf(datFilename3, nameLength + 4, "3%s.dat", wav->wavName);
-  fDatOut3 = fopen(datFilename3, "w");
-
-  snprintf(datFilename4, nameLength + 4, "4%s.dat", wav->wavName);
-  fDatOut4 = fopen(datFilename4, "w");
+  snprintf(datFilename, nameLength + 4, "%s.dat", wav->wavName);
+  fDatOut = fopen(datFilename, "w");
 
   correction = (double)wav->sampleRate / (double)N;
 
@@ -466,10 +445,6 @@ int writeFFT(int N, int startRead, struct WaveHeader *wav) {
     fftw_execute(my_plan2);
     fftw_execute(my_plan3);
     fftw_execute(my_plan4);
-    max1 = 0;
-    max2 = 0;
-    max3 = 0;
-    max4 = 0;
     //Iterate through sample size
     //skip the first element, since it is the average of the sample
     for (j = 1; j<(N/2)+1; j++) {
@@ -477,33 +452,16 @@ int writeFFT(int N, int startRead, struct WaveHeader *wav) {
       mag2 = sqrtf(2*(out2[j][0]*out2[j][0] + out2[j][1]*out2[j][1])/N);
       mag3 = sqrtf(2*(out3[j][0]*out3[j][0] + out3[j][1]*out3[j][1])/N);
       mag4 = sqrtf(2*(out4[j][0]*out4[j][0] + out4[j][1]*out4[j][1])/N);
-      if (mag1 > max1) max1 = mag1;
-      if (mag1 > totalmax1) totalmax1 = mag1;
-
-      if (mag2 > max2) max2 = mag2;
-      if (mag2 > totalmax2) totalmax2 = mag2;
-
-      if (mag3 > max3) max3 = mag3;
-      if (mag3 > totalmax3) totalmax3 = mag3;
-
-      if (mag4 > max4) max4 = mag4;
-      if (mag4 > totalmax4) totalmax4 = mag4;
-
+      
       //Set the frequency bin
       freqBin = (double)(j) * correction;
 
       //Print out (sample FreqBin dB (unscaled))
       //This can be used with gnuplot or matlab to generate spectrogram
-      fprintf(fDatOut1,"%d %f %f %f %f \n",i,freqBin,mag1, max1, totalmax1);
-      fprintf(fDatOut2,"%d %f %f %f %f \n",i,freqBin,mag2, max2, totalmax2);
-      fprintf(fDatOut3,"%d %f %f %f %f \n",i,freqBin,mag3, max3, totalmax3);
-      fprintf(fDatOut4,"%d %f %f %f %f \n",i,freqBin,mag4, max4, totalmax4);
+      fprintf(fDatOut,"%d %f %f %f %f %f\n",i,freqBin,mag1, mag2, mag3, mag4);
     }
     //gnuplot requires a line break between sample sets for spectrograms
-    fprintf(fDatOut1,"\n");
-    fprintf(fDatOut2,"\n");
-    fprintf(fDatOut3,"\n");
-    fprintf(fDatOut4,"\n");
+    fprintf(fDatOut,"\n");
   }
 
   fftw_free(in1);
@@ -523,14 +481,14 @@ int writeFFT(int N, int startRead, struct WaveHeader *wav) {
   fftw_destroy_plan(my_plan4);
 
   fftw_cleanup();
-//  fclose(fDatOut1);
+  fclose(fDatOut);
 //  fclose(fDatOut2);
 //  fclose(fDatOut3);
 //  fclose(fDatOut4);
 
   //write gnuplot script
 //  printf("Writing spec.gp\n");
-  writeGpScript(datFilename1, wav->sampleRate, i);
+  writeGpScript(datFilename, wav->sampleRate, i);
 
   return 0;
 }
