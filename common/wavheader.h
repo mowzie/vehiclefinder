@@ -19,7 +19,7 @@ struct WaveHeader{
     short int          bps;
     char               datachunkId[4];
     unsigned int       datachunkSize;
-    unsigned int       totalSamples;
+    int       totalSamples;
     short int * chan1;
     short int * chan2;
     short int * chan3;
