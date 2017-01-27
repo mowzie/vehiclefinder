@@ -1,6 +1,9 @@
 # Emegerancy Vehicle Finder project
 ---
 
+Please note: This was an experimental project that was written before any disciplined coding classes.  
+That said: the code is ugly and does not represent current code standards.
+
 ####Simple explination of dirs
 
 
